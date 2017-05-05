@@ -15,6 +15,13 @@
 	$usertimearr=array();
 	$timearr=array();
 	$tempid="";
+	
+	$totalcount=1;
+	$totalpos=0;
+
+	$innercount=0;
+	$innerpos=0;
+	$content="";
 
 	foreach ($loadedxml as $userdata):
 		$pid=$userdata->{"Player-ID"};
@@ -23,81 +30,52 @@
 		$tloa=$userdata->{"LevelOfAggression"};
 		$checkH=$userdata->{"Checked-Heatmap"};
 		$checkB=$userdata->{"Checked-BestHeatmap"};
-	if( $tloa==$loa && substr($tlos,0, 1)==substr($los,0, 1) && $homo==$thomo)
-	{	
 		$telap=floatval($userdata->{"Time-Elapsed"});
-		
+
+
 		if($tempid == "")
 		{
 			$tempid=$pid;
-			$timearr=array();
+			$lasttime=floatval($telap);
 		}
-		elseif($tempid != $pid && $tempid != "")
+		elseif(strcmp($tempid, $pid)!=0 && $tempid != "")
 		{
-			array_push($usertimearr,$timearr);
 			$tempid=$pid;
-			$timearr=array();
-			array_push($timearr,$telap);
+			$content=$content . $innerpos . ","; 
+			if($innerpos>0)
+			{
+				$totalpos=$totalpos+1;
+			}
+
+			$lasttime=floatval($telap);
+			$innercount=0;
+			$innerpos=0;
+		$totalcount=$totalcount+1;
+
 		}
-		elseif($tempid == $pid)
+		elseif(strcmp($tempid, $pid)==0)
 		{
-        		array_push($timearr,$telap);
+        		$innercount=$innercount+1;
+			$roundeddiff=round($telap-$lasttime,1);
+			
+			$value=$roundeddiff *10;
+			if($roundeddiff <0.1)
+			{
+				$innerpos=$innerpos+1;
+			}
+			else
+			{
+				$innerpos=$innerpos-1;
+			}
+
+			$lasttime=floatval($telap);
 		}
-		
-	}
-		
+
     endforeach;
-echo sizeof($usertimearr);
-?>
-<html>
-  <head>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-      google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(drawChart);
-      function drawChart() {
-<?php
-$usercount=1;
-foreach ($usertimearr as $timearr){
-?>
-        var data = google.visualization.arrayToDataTable([
-          ['userplays', 'Evacuation Time'],
-<?php
-$count=1;
-foreach ($timearr as &$value) {
-?>
-          [<?php echo $count ?>,     <?php echo $value ?>],
-<?php
-$count=$count+1;
-}
-?>
-]);
-        var options = {
-          title: 'Userplay vs. Time comparison',
-          hAxis: {title: 'Userplay Instances'},
-          vAxis: {title: 'Evacuation Time'},
-          legend: 'none'
-        };
 
-        var chart = new google.visualization.ScatterChart(document.getElementById('chart_div' + <?php echo $usercount ?>));
-
-        chart.draw(data, options);
-<?php
-$usercount=$usercount+1;
-}
+	$newfile = fopen("file.txt", "w");
+	fwrite($newfile,$content);
+	fclose($newfile);
+$output=$totalpos/$totalcount;
+echo "The success probability is " . $output ;
 ?>
-      }
-    </script>
-  </head>
-  <body>
-<?php
-$usercount=1;
-foreach ($usertimearr as &$timearr){
-?>
-    <div id="chart_div<?php echo $usercount ?>" style="width: 900px; height: 500px;"></div>
-<?php
-$usercount=$usercount+1;
-}
-?>
-  </body>
-</html>
